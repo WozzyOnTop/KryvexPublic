@@ -5168,6 +5168,258 @@ Misc:AddSwitch("📏 Set Size", function(Value)
     end
 end)
 
+-- ============================================================
+-- ANTI AFK + FPS/MS GÖSTERGESİ (Kırmızı Tema)
+-- ============================================================
+
+-- Servisler
+local AntiAfkService = game:GetService("VirtualUser")
+local AntiAfkPlayers = game:GetService("Players")
+local AntiAfkRunService = game:GetService("RunService")
+local AntiAfkStats = game:GetService("Stats")
+local AntiAfkLocalPlayer = AntiAfkPlayers.LocalPlayer
+
+-- ============================================================
+-- FPS/MS MONITOR (Kırmızı tema, sağ üst)
+-- ============================================================
+
+local monitorGui = Instance.new("ScreenGui")
+monitorGui.Name = "KryvexMonitor"
+monitorGui.ResetOnSpawn = false
+monitorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+monitorGui.Parent = game:GetService("CoreGui")
+
+-- Ana frame
+local monitorFrame = Instance.new("Frame")
+monitorFrame.Name = "MonitorFrame"
+monitorFrame.Size = UDim2.new(0, 160, 0, 50)
+monitorFrame.Position = UDim2.new(1, -180, 0, 20)
+monitorFrame.BackgroundColor3 = Color3.fromRGB(18, 2, 2)
+monitorFrame.BorderSizePixel = 0
+monitorFrame.Active = true
+monitorFrame.Draggable = true
+monitorFrame.Parent = monitorGui
+
+local monitorCorner = Instance.new("UICorner", monitorFrame)
+monitorCorner.CornerRadius = UDim.new(0, 10)
+
+local monitorStroke = Instance.new("UIStroke", monitorFrame)
+monitorStroke.Color = Color3.fromRGB(255, 30, 30)
+monitorStroke.Thickness = 2
+monitorStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local monitorGrad = Instance.new("UIGradient", monitorFrame)
+monitorGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 3, 3)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 1, 1))
+}
+monitorGrad.Rotation = 90
+
+-- Başlık
+local monitorTitle = Instance.new("TextLabel", monitorFrame)
+monitorTitle.Name = "Title"
+monitorTitle.Size = UDim2.new(1, -8, 0, 14)
+monitorTitle.Position = UDim2.new(0, 6, 0, 3)
+monitorTitle.BackgroundTransparency = 1
+monitorTitle.Text = "⚡ KRYVEX MONITOR"
+monitorTitle.TextColor3 = Color3.fromRGB(255, 60, 60)
+monitorTitle.Font = Enum.Font.GothamBold
+monitorTitle.TextSize = 10
+monitorTitle.TextXAlignment = Enum.TextXAlignment.Left
+monitorTitle.ZIndex = 2
+
+-- FPS Label
+local fpsLabel = Instance.new("TextLabel", monitorFrame)
+fpsLabel.Name = "FPSLabel"
+fpsLabel.Size = UDim2.new(0.5, -4, 0, 16)
+fpsLabel.Position = UDim2.new(0, 6, 0, 18)
+fpsLabel.BackgroundTransparency = 1
+fpsLabel.Text = "FPS: 60"
+fpsLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+fpsLabel.Font = Enum.Font.GothamBold
+fpsLabel.TextSize = 12
+fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
+fpsLabel.ZIndex = 2
+
+-- MS (Ping) Label
+local msLabel = Instance.new("TextLabel", monitorFrame)
+msLabel.Name = "MSLabel"
+msLabel.Size = UDim2.new(0.5, -4, 0, 16)
+msLabel.Position = UDim2.new(0.5, 0, 0, 18)
+msLabel.BackgroundTransparency = 1
+msLabel.Text = "MS: 20"
+msLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+msLabel.Font = Enum.Font.GothamBold
+msLabel.TextSize = 12
+msLabel.TextXAlignment = Enum.TextXAlignment.Right
+msLabel.ZIndex = 2
+
+-- Anti-AFK durum çizgisi
+local afkStatus = Instance.new("TextLabel", monitorFrame)
+afkStatus.Name = "AFKStatus"
+afkStatus.Size = UDim2.new(1, -8, 0, 12)
+afkStatus.Position = UDim2.new(0, 6, 0, 34)
+afkStatus.BackgroundTransparency = 1
+afkStatus.Text = "🛡️ Anti-AFK: OFF"
+afkStatus.TextColor3 = Color3.fromRGB(120, 120, 120)
+afkStatus.Font = Enum.Font.GothamBold
+afkStatus.TextSize = 9
+afkStatus.TextXAlignment = Enum.TextXAlignment.Left
+afkStatus.ZIndex = 2
+
+-- FPS Hesaplama
+local fpsFrames = 0
+local fpsTime = tick()
+
+AntiAfkRunService.RenderStepped:Connect(function()
+    fpsFrames = fpsFrames + 1
+    if tick() - fpsTime >= 0.5 then
+        local fps = math.floor(fpsFrames / (tick() - fpsTime))
+        fpsFrames = 0
+        fpsTime = tick()
+        
+        fpsLabel.Text = "FPS: " .. fps
+        
+        -- Renk değiştir
+        if fps >= 50 then
+            fpsLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        elseif fps >= 30 then
+            fpsLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+        else
+            fpsLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        end
+    end
+end)
+
+-- Ping (MS) Hesaplama
+task.spawn(function()
+    while monitorFrame.Parent do
+        pcall(function()
+            local ping = math.floor(AntiAfkStats.Network.ServerStatsItem["Data Ping"]:GetValue())
+            msLabel.Text = "MS: " .. ping
+            
+            if ping <= 60 then
+                msLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+            elseif ping <= 120 then
+                msLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+            else
+                msLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+            end
+        end)
+        task.wait(1)
+    end
+end)
+
+-- ============================================================
+-- ANTI AFK SİSTEMİ (10 dakikada bir tetiklenir)
+-- ============================================================
+
+_G.AntiAfkEnabled = false
+local AFK_INTERVAL = 600 -- 10 dakika = 600 saniye
+local afkLastTrigger = tick()
+
+-- Client tarafında AFK kalmayı önleyen sistem
+AntiAfkLocalPlayer.Idled:Connect(function()
+    if _G.AntiAfkEnabled then
+        pcall(function()
+            AntiAfkService:CaptureController()
+            AntiAfkService:ClickButton2(Vector2.new())
+        end)
+    end
+end)
+
+-- Arka plan döngüsü - 10 dakikada bir ekrana tıkla
+task.spawn(function()
+    while task.wait(1) do
+        if _G.AntiAfkEnabled then
+            if tick() - afkLastTrigger >= AFK_INTERVAL then
+                afkLastTrigger = tick()
+                
+                -- Ekrana tıkla (input simülasyonu)
+                pcall(function()
+                    local VIM = game:GetService("VirtualInputManager")
+                    
+                    -- Mouse tıklama simülasyonu (orta ekran)
+                    local viewport = workspace.CurrentCamera.ViewportSize
+                    local centerX = viewport.X / 2
+                    local centerY = viewport.Y / 2
+                    
+                    -- Mouse move
+                    VIM:SendMouseMoveEvent(centerX, centerY, game)
+                    task.wait(0.1)
+                    
+                    -- Mouse click
+                    VIM:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
+                    task.wait(0.05)
+                    VIM:SendMouseButtonEvent(centerX, centerY, 0, false, game, 1)
+                    
+                    -- Klavye tuşuna bas (Space)
+                    task.wait(0.1)
+                    VIM:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                    task.wait(0.05)
+                    VIM:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                end)
+                
+                -- CaptureController ile de ekstra güvence
+                pcall(function()
+                    AntiAfkService:CaptureController()
+                    AntiAfkService:ClickButton2(Vector2.new())
+                end)
+            end
+        else
+            afkLastTrigger = tick() -- Sürekli sıfırla
+        end
+    end
+end)
+
+-- ============================================================
+-- ANTI AFK TOGGLE (Misc tab'ında)
+-- ============================================================
+
+Misc:AddSwitch("🛡️ Anti AFK (10dk'da bir tıkla)", function(state)
+    _G.AntiAfkEnabled = state
+    afkLastTrigger = tick()
+    
+    if state then
+        afkStatus.Text = "🛡️ Anti-AFK: ON"
+        afkStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Kryvex Hub",
+            Text = "Anti-AFK aktif! 10 dakikada bir ekrana tıklanacak.",
+            Duration = 3
+        })
+    else
+        afkStatus.Text = "🛡️ Anti-AFK: OFF"
+        afkStatus.TextColor3 = Color3.fromRGB(120, 120, 120)
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Kryvex Hub",
+            Text = "Anti-AFK kapatıldı.",
+            Duration = 2
+        })
+    end
+end)
+
+-- Monitor görünürlüğü
+Misc:AddSwitch("📊 FPS/MS Göstergesini Göster", function(state)
+    monitorGui.Enabled = state
+end)
+monitorGui.Enabled = true -- Varsayılan açık
+
+-- Monitor kapatma butonu
+local closeMonitor = Instance.new("TextButton", monitorFrame)
+closeMonitor.Size = UDim2.new(0, 12, 0, 12)
+closeMonitor.Position = UDim2.new(1, -15, 0, 3)
+closeMonitor.BackgroundTransparency = 1
+closeMonitor.Text = "×"
+closeMonitor.TextColor3 = Color3.fromRGB(255, 80, 80)
+closeMonitor.Font = Enum.Font.GothamBold
+closeMonitor.TextSize = 14
+closeMonitor.ZIndex = 3
+closeMonitor.MouseButton1Click:Connect(function()
+    monitorGui.Enabled = false
+end)
 
 
 Misc:AddButton("🚀 FPS Booster", function()
